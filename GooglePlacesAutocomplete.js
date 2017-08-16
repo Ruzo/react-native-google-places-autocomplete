@@ -115,7 +115,8 @@ const GooglePlacesAutocomplete = React.createClass({
     renderRightButton: React.PropTypes.func,
     listUnderlayColor: React.PropTypes.string,
     debounce: React.PropTypes.number,
-    isRowScrollable: React.PropTypes.bool
+    isRowScrollable: React.PropTypes.bool,
+    clearTextOnFocus: React.PropTypes.bool
   },
 
   getDefaultProps() {
@@ -158,7 +159,8 @@ const GooglePlacesAutocomplete = React.createClass({
       predefinedPlacesAlwaysVisible: false,
       enableEmptySections: true,
       listViewDisplayed: 'auto',
-      debounce: 0
+      debounce: 0,
+      clearTextOnFocus: true
     };
   },
 
@@ -214,6 +216,7 @@ const GooglePlacesAutocomplete = React.createClass({
   },
 
   componentWillMount() {
+    this._isMounted = false;
     this._request = this.props.debounce
       ? debounce(this._request, this.props.debounce)
       : this._request;
@@ -227,7 +230,12 @@ const GooglePlacesAutocomplete = React.createClass({
     }
   },
 
+  componentDidMount() {
+    this._isMounted = true;
+  },
+
   componentWillUnmount() {
+    this._isMounted = false;
     this._abortRequests();
   },
 
@@ -307,7 +315,7 @@ const GooglePlacesAutocomplete = React.createClass({
     }
   },
   _disableRowLoaders() {
-    if (this.isMounted()) {
+    if (this._isMounted) {
       for (let i = 0; i < this._results.length; i++) {
         if (this._results[i].isLoading === true) {
           this._results[i].isLoading = false;
@@ -342,7 +350,7 @@ const GooglePlacesAutocomplete = React.createClass({
         if (request.status === 200) {
           const responseJSON = JSON.parse(request.responseText);
           if (responseJSON.status === 'OK') {
-            if (this.isMounted()) {
+            if (this._isMounted) {
               const details = responseJSON.result;
               this._disableRowLoaders();
               this._onBlur();
@@ -465,7 +473,7 @@ const GooglePlacesAutocomplete = React.createClass({
           this._disableRowLoaders();
 
           if (typeof responseJSON.results !== 'undefined') {
-            if (this.isMounted()) {
+            if (this._isMounted) {
               var results = [];
               if (this.props.nearbyPlacesAPI === 'GoogleReverseGeocoding') {
                 results = this._filterResultsByTypes(responseJSON, this.props.filterReverseGeocodingByTypes);
@@ -526,7 +534,7 @@ const GooglePlacesAutocomplete = React.createClass({
         if (request.status === 200) {
           const responseJSON = JSON.parse(request.responseText);
           if (typeof responseJSON.predictions !== 'undefined') {
-            if (this.isMounted()) {
+            if (this._isMounted) {
               this._results = responseJSON.predictions;
               this.setState({
                 dataSource: this.state.dataSource.cloneWithRows(this.buildRowsFromResults(responseJSON.predictions)),
@@ -656,7 +664,8 @@ const GooglePlacesAutocomplete = React.createClass({
 
   _onFocus() {
     this.setState({
-      listViewDisplayed: true
+      listViewDisplayed: true,
+      text: this.props.clearTextOnFocus ? '' : this.state.text
     });
   },
 
